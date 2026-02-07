@@ -11,3 +11,4 @@ import { PrismaModule } from './prisma/prisma.module.js';
   providers: [AppService, PrismaService, AuthService],
 })
 export class AppModule {}
+``;
