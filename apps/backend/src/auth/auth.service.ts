@@ -57,6 +57,8 @@ export class AuthService {
   }
 
   async login(data: LoginDto) {
+    console.log(data);
+
     const user = await this.validateUser(data.email, data.password);
 
     if (!user) {

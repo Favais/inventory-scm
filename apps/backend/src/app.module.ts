@@ -7,6 +7,8 @@ import { TokenService } from './token/token.service.js';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TokenModule } from './token/token.module.js';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 
 @Module({
   imports: [
@@ -16,6 +18,12 @@ import { TokenModule } from './token/token.module.js';
     TokenModule,
   ],
   controllers: [AppController],
-  providers: [AppService, TokenService, JwtService, ConfigService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

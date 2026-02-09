@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { AuthResponseDto } from 'src/auth/dto/auth-response.dto.js';
 
 @Injectable()
 export class TokenService {
@@ -48,9 +47,10 @@ export class TokenService {
   async refreshTokens(refreshToken: string) {
     try {
       // Verify refresh token
-      const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
-      });
+      const payload: { sub: string; email: string; role: string } =
+        await this.jwtService.verifyAsync(refreshToken, {
+          secret: this.configService.get('JWT_REFRESH_SECRET'),
+        });
 
       // Check if refresh token exists in database
       const storedToken = await this.prisma.refreshToken.findUnique({

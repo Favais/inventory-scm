@@ -6,6 +6,7 @@ import { TokenService } from '../token/token.service.js';
 import { TokenModule } from '../token/token.module.js';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
 @Module({
   imports: [
