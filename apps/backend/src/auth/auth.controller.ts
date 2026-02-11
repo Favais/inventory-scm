@@ -1,4 +1,15 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Ip,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -12,6 +23,8 @@ import { LoginDto } from './dto/login.dto.js';
 import { TokenService } from '../token/token.service.js';
 import { Public } from './decorators/public.decorator.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
+import type Request from 'express';
+import { SessionService } from './session/session.service.js';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -19,15 +32,26 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly tokenService: TokenService,
+    private readonly sessionService: SessionService,
   ) {}
-
+  private getSessionMetadata(req: Request, ip: string) {
+    return {
+      ipAddress: ip || 'unknown',
+      userAgent: (req.headers['user-agent'] as string) || 'unknown',
+    };
+  }
   @Public()
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 400, description: 'Validation failed' })
-  async register(@Body() data: RegisterDto) {
-    return this.authService.register(data);
+  async register(
+    @Body() data: RegisterDto,
+    @Req() req: Request,
+    @Ip() ip: string,
+  ) {
+    const metadata = this.getSessionMetadata(req, ip);
+    return this.authService.register(data, metadata);
   }
 
   @Public()
@@ -39,8 +63,9 @@ export class AuthController {
     description: 'Login successful',
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() data: LoginDto) {
-    return this.authService.login(data);
+  async login(@Body() data: LoginDto, @Req() req: Request, @Ip() ip: string) {
+    const metadata = this.getSessionMetadata(req, ip);
+    return this.authService.login(data, metadata);
   }
 
   @Public()
@@ -63,8 +88,13 @@ export class AuthController {
     description: 'New access token generated',
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
-  async refresh(@Body('refreshToken') refreshToken: string) {
-    return this.tokenService.refreshTokens(refreshToken);
+  async(
+    @Body('refreshToken') refreshToken: string,
+    @Req() req: Request,
+    @Ip() ip: string,
+  ) {
+    const metadata = this.getSessionMetadata(req, ip);
+    return this.tokenService.refreshSessionWithToken(refreshToken, metadata);
   }
 
   @Post('logout')
@@ -83,8 +113,51 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
-  async logout(@CurrentUser() user: { id: string }) {
-    await this.authService.logout(user.id);
+  async logout(
+    @CurrentUser() user: { id: string },
+    @Body('sessionId') sessionId: string,
+  ) {
+    await this.authService.logout(user.id, sessionId);
     return { message: 'Logged out successfully' };
+  }
+
+  @Get('sessions')
+  async getSessions(
+    @CurrentUser() user: { id: string },
+    @Body('refreshToken') refreshToken?: string,
+  ) {
+    return this.sessionService.getUserSessions(user.id, refreshToken);
+  }
+
+  @Delete('sessions/:sessionId')
+  @HttpCode(HttpStatus.OK)
+  async revokeSession(
+    @CurrentUser() user: { id: string },
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.sessionService.revokeSession(user.id, sessionId);
+  }
+
+  @Post('sessions/revoke-others')
+  @HttpCode(HttpStatus.OK)
+  async revokeOtherSessions(
+    @CurrentUser() user: any,
+    @Body('refreshToken') refreshToken: string,
+  ) {
+    return this.sessionService.revokeAllOtherSessions(user.id, refreshToken);
+  }
+
+  @Get('me')
+  getCurrentUser(
+    @CurrentUser()
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+    },
+  ) {
+    return user;
   }
 }

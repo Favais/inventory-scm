@@ -8,14 +8,16 @@ import { RegisterDto } from './dto/register.dto.js';
 import bcrypt from 'bcrypt';
 import { TokenService } from '../token/token.service.js';
 import { LoginDto } from './dto/login.dto.js';
+import { SessionMetadata, SessionService } from './session/session.service.js';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prismaService: PrismaService,
     private tokenService: TokenService,
+    private sessionService: SessionService,
   ) {}
-  async register(data: RegisterDto) {
+  async register(data: RegisterDto, metadata: SessionMetadata) {
     const existingUser = await this.prismaService.user.findUnique({
       where: { email: data.email },
     });
@@ -33,15 +35,13 @@ export class AuthService {
       data: { ...rest, passwordHash },
     });
 
-    // Generate tokens
-    const tokens = await this.tokenService.generateTokens(
+    // Generate tokens with metadata
+    const tokens = await this.tokenService.createSessionWithTokens(
       user.id,
       user.email,
       user.role,
+      metadata,
     );
-
-    //save refresh token
-    await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
 
     return {
       accessToken: tokens.accessToken,
@@ -56,9 +56,7 @@ export class AuthService {
     };
   }
 
-  async login(data: LoginDto) {
-    console.log(data);
-
+  async login(data: LoginDto, metadata: SessionMetadata) {
     const user = await this.validateUser(data.email, data.password);
 
     if (!user) {
@@ -77,14 +75,12 @@ export class AuthService {
     });
 
     // Generate tokens
-    const tokens = await this.tokenService.generateTokens(
+    const tokens = await this.tokenService.createSessionWithTokens(
       user.id,
       user.email,
       user.role,
+      metadata,
     );
-
-    // Save refresh token
-    await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
 
     return {
       accessToken: tokens.accessToken,
@@ -99,14 +95,14 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string) {
-    // Delete all refresh tokens for this user
-    await this.prismaService.refreshToken.deleteMany({
-      where: { userId },
-    });
+  async logout(userId: string, sessionId?: string) {
+    if (sessionId) {
+      return this.sessionService.revokeSession(userId, sessionId);
+    }
 
-    return { message: 'Logged out successfully' };
+    return this.sessionService.revokeAllSessions(userId);
   }
+
   async validateUser(email: string, password: string) {
     const user = await this.prismaService.user.findUnique({
       where: { email },
