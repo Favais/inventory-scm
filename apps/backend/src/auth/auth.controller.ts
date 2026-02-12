@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Req,
+  Res,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -23,9 +24,8 @@ import { LoginDto } from './dto/login.dto.js';
 import { TokenService } from '../token/token.service.js';
 import { Public } from './decorators/public.decorator.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
-import type Request from 'express';
 import { SessionService } from './session/session.service.js';
-
+import type { Response, Request } from 'express';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
@@ -63,9 +63,23 @@ export class AuthController {
     description: 'Login successful',
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() data: LoginDto, @Req() req: Request, @Ip() ip: string) {
+  async login(
+    @Body() data: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @Ip() ip: string,
+  ) {
     const metadata = this.getSessionMetadata(req, ip);
-    return this.authService.login(data, metadata);
+    const result = await this.authService.login(data, metadata);
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    return res.json({
+      accessToken: result.accessToken,
+      user: result.user,
+    });
   }
 
   @Public()
@@ -88,15 +102,30 @@ export class AuthController {
     description: 'New access token generated',
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
-  async(
-    @Body('refreshToken') refreshToken: string,
+  async refresh(
+    @Body('refreshToken') sessionRefreshToken: string,
     @Req() req: Request,
     @Ip() ip: string,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    const metadata = this.getSessionMetadata(req, ip);
-    return this.tokenService.refreshSessionWithToken(refreshToken, metadata);
-  }
+    const refreshToken =
+      (req.cookies['refreshToken'] as string) || sessionRefreshToken;
 
+    const metadata = this.getSessionMetadata(req, ip);
+    const result = await this.tokenService.refreshSessionWithToken(
+      refreshToken,
+      metadata,
+    );
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    return res.json({
+      accessToken: result.accessToken,
+      rotated: result.rotated,
+    });
+  }
   @Post('logout')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout user and revoke refresh tokens' })
@@ -122,11 +151,8 @@ export class AuthController {
   }
 
   @Get('sessions')
-  async getSessions(
-    @CurrentUser() user: { id: string },
-    @Body('refreshToken') refreshToken?: string,
-  ) {
-    return this.sessionService.getUserSessions(user.id, refreshToken);
+  async getSessions(@CurrentUser() user: { id: string }) {
+    return this.sessionService.getUserSessions(user.id);
   }
 
   @Delete('sessions/:sessionId')
@@ -142,8 +168,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async revokeOtherSessions(
     @CurrentUser() user: any,
-    @Body('refreshToken') refreshToken: string,
+    @Req() req: Request,
+    @Body('refreshToken') sessionRefreshToken: string,
   ) {
+    const refreshToken =
+      (req.cookies['refreshToken'] as string) || sessionRefreshToken;
     return this.sessionService.revokeAllOtherSessions(user.id, refreshToken);
   }
 

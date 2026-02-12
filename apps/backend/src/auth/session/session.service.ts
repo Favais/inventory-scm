@@ -83,10 +83,7 @@ export class SessionService {
   }
 
   // Get all active sessions for a user
-  async getUserSessions(
-    userId: string,
-    currentRefreshToken?: string,
-  ): Promise<SessionInfo[]> {
+  async getUserSessions(userId: string): Promise<SessionInfo[]> {
     const sessions = await this.prisma.session.findMany({
       where: {
         userId,
