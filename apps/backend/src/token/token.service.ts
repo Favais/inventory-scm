@@ -2,10 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
-import {
-  SessionMetadata,
-  SessionService,
-} from '../auth/session/session.service.js';
+import { SessionService } from '../session/session.service.js';
+import type { SessionMetadata } from '../session/session.service.js';
 
 @Injectable()
 export class TokenService {

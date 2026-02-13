@@ -20,6 +20,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
+  "prisma": {
+    "seed": "node dist/prisma/seed.js"
+  },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
@@ -61,6 +64,7 @@
     "@types/passport-local": "^1.0.38",
     "@types/supertest": "^6.0.2",
     "@types/ua-parser-js": "^0.7.39",
+    "esbuild": "^0.19.12",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

@@ -24,8 +24,8 @@ import { LoginDto } from './dto/login.dto.js';
 import { TokenService } from '../token/token.service.js';
 import { Public } from './decorators/public.decorator.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
-import { SessionService } from './session/session.service.js';
 import type { Response, Request } from 'express';
+import { SessionService } from '../session/session.service.js';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
@@ -151,8 +151,9 @@ export class AuthController {
   }
 
   @Get('sessions')
-  async getSessions(@CurrentUser() user: { id: string }) {
-    return this.sessionService.getUserSessions(user.id);
+  async getSessions(@CurrentUser() user: { id: string }, @Req() req: Request) {
+    const refreshToken = req.cookies['refreshToken'] as string;
+    return this.sessionService.getUserSessions(user.id, refreshToken);
   }
 
   @Delete('sessions/:sessionId')

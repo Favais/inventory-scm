@@ -5,8 +5,8 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { TokenModule } from '../token/token.module.js';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
-import { SessionService } from './session/session.service.js';
-import { SessionCleanupService } from './session/session-cleanup.service.js';
+import { SessionService } from '../session/session.service.js';
+import { SessionCleanupService } from '../session/session-cleanup.service.js';
 
 @Module({
   imports: [

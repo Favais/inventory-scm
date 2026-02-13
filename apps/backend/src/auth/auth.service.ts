@@ -8,8 +8,8 @@ import { RegisterDto } from './dto/register.dto.js';
 import bcrypt from 'bcrypt';
 import { TokenService } from '../token/token.service.js';
 import { LoginDto } from './dto/login.dto.js';
-import { SessionMetadata, SessionService } from './session/session.service.js';
-
+import { SessionMetadata } from '../session/session.service.js';
+import { SessionService } from '../session/session.service.js';
 @Injectable()
 export class AuthService {
   constructor(

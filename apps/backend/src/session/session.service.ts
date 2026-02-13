@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { UAParser } from 'ua-parser-js';
 
 export interface SessionMetadata {
