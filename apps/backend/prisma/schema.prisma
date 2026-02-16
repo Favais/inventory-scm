@@ -31,7 +31,11 @@ model User {
   approvedPOs       PurchaseOrder[]    @relation("ApprovedBy")
   auditLogs         AuditLog[]
 
+
   sessions Session[]
+  createdUsers  User[]    @relation("UserCreator")
+  createdBy     User?     @relation("UserCreator", fields: [createdById], references: [id])
+  createdById   String?   @map("created_by_id")
 
   @@map("users")
 }
