@@ -145,8 +145,15 @@ export class AuthController {
   async logout(
     @CurrentUser() user: { id: string },
     @Body('sessionId') sessionId: string,
+    @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(user.id, sessionId);
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: true, // true in production (HTTPS)
+      path: '/',
+    });
     return { message: 'Logged out successfully' };
   }
 

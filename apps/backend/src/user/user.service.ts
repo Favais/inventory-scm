@@ -3,8 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { UserRole } from 'src/generated/prisma/enums.js';
-import { PrismaService } from 'src/prisma/prisma.service.js';
+import { UserRole } from '../generated/prisma/enums.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
 
@@ -77,7 +77,7 @@ export class UserService {
   }
   // update user details (except password) and track who made the update
 
-  async updateUser(
+  async update(
     id: string,
     updateUserDto: UpdateUserDto,
     updatedByUserId: string,
@@ -130,6 +130,10 @@ export class UserService {
         updatedAt: true,
       },
     });
+  }
+
+  async changeRole(userId: string, newRole: UserRole, changedByUserId: string) {
+    return this.update(userId, { role: newRole }, changedByUserId);
   }
 
   async remove(id: string, deletedByUserId: string) {
@@ -203,5 +207,59 @@ export class UserService {
     if (targetRole === UserRole.ADMIN && deleterRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only admins can delete admin users');
     }
+  }
+
+  getRoleCapabilities(role: UserRole) {
+    const capabilities = {
+      [UserRole.ADMIN]: {
+        users: ['create', 'read', 'update', 'delete', 'manage_roles'],
+        products: ['create', 'read', 'update', 'delete'],
+        inventory: ['create', 'read', 'update', 'transfer'],
+        warehouses: ['create', 'read', 'update', 'delete'],
+        purchaseOrders: ['create', 'read', 'update', 'approve', 'delete'],
+        suppliers: ['create', 'read', 'update', 'delete'],
+        reports: ['view', 'export', 'advanced'],
+        settings: ['read', 'update'],
+        auditLogs: ['read'],
+      },
+      [UserRole.MANAGER]: {
+        users: ['create', 'read', 'update', 'manage_roles'], // Can't delete users
+        products: ['create', 'read', 'update', 'delete'],
+        inventory: ['create', 'read', 'update', 'transfer'],
+        warehouses: ['create', 'read', 'update', 'delete'],
+        purchaseOrders: ['create', 'read', 'update', 'approve', 'delete'],
+        suppliers: ['create', 'read', 'update', 'delete'],
+        reports: ['view', 'export', 'advanced'],
+        settings: ['read'],
+        auditLogs: ['read'],
+      },
+      [UserRole.CLERK]: {
+        users: ['read'],
+        products: ['create', 'read', 'update'],
+        inventory: ['create', 'read', 'update', 'transfer'],
+        warehouses: ['read'],
+        purchaseOrders: ['create', 'read', 'update'],
+        suppliers: ['read'],
+        reports: ['view', 'export'],
+        settings: [],
+        auditLogs: [],
+      },
+      [UserRole.VIEWER]: {
+        users: ['read'],
+        products: ['read'],
+        inventory: ['read'],
+        warehouses: ['read'],
+        purchaseOrders: ['read'],
+        suppliers: ['read'],
+        reports: ['view'],
+        settings: [],
+        auditLogs: [],
+      },
+    };
+
+    return {
+      role,
+      capabilities: capabilities[role],
+    };
   }
 }
