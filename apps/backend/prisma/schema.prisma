@@ -36,8 +36,25 @@ model User {
   createdUsers  User[]    @relation("UserCreator")
   createdBy     User?     @relation("UserCreator", fields: [createdById], references: [id])
   createdById   String?   @map("created_by_id")
+  passwordResets  PasswordReset[] // ← NEW
+
 
   @@map("users")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([userId])
+  @@map("password_resets")
 }
 
 enum UserRole {

@@ -8,6 +8,7 @@ import { TokenModule } from './token/token.module.js';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { UserModule } from './user/user.module.js';
+import { EmailModule } from './email/email.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UserModule } from './user/user.module.js';
     AuthModule,
     TokenModule,
     UserModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
