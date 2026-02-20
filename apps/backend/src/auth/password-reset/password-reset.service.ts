@@ -1,9 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { EmailService } from '../../email/email.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { SessionService } from '../../session/session.service.js';
+import { ResetPasswordDto } from '../dto/reset-password.dto.js';
 
 @Injectable()
 export class PasswordResetService {
@@ -122,6 +127,85 @@ export class PasswordResetService {
       };
     }
     return { valid: false };
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    // Get active password reset token
+    const reset = await this.prisma.passwordReset.findFirst({
+      where: {
+        token,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!reset) {
+      return {
+        message: 'Invalid or expired password reset token.',
+      };
+    }
+
+    const isValid = await bcrypt.compare(token, reset.token);
+
+    if (!isValid) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (isValid && !reset.user.isActive) {
+      throw new UnauthorizedException('Account is disabled');
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update user password
+    await this.prisma.user.update({
+      where: { id: reset.userId },
+      data: { passwordHash },
+    });
+
+    // Mark token as used
+    await this.prisma.passwordReset.update({
+      where: { id: reset.id },
+      data: { usedAt: new Date() },
+    });
+
+    // Revoke all active sessions (force re-login)
+    await this.sessionService.revokeAllSessions(reset.user.id);
+
+    // Send confirmation email
+    try {
+      await this.emailService.sendPasswordChangedEmail(
+        reset.user.email,
+        reset.user.firstName,
+      );
+    } catch (error) {
+      console.error('Failed to send password changed email:', error);
+    }
+
+    return {
+      message:
+        'Password reset successful. Please log in with your new password.',
+    };
+  }
+
+  async cleanupExpiredTokens(): Promise<{ deletedCount: number }> {
+    const result = await this.prisma.passwordReset.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: new Date() } }, // Expired
+          { usedAt: { not: null } }, // Already used
+        ],
+      },
+    });
+
+    return { deletedCount: result.count };
   }
 
   private generateSecureToken(): string {

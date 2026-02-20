@@ -8,6 +8,7 @@ import {
   Ip,
   Param,
   Post,
+  Query,
   Req,
   Res,
 } from '@nestjs/common';
@@ -26,6 +27,11 @@ import { Public } from './decorators/public.decorator.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import type { Response, Request } from 'express';
 import { SessionService } from '../session/session.service.js';
+import { PasswordResetService } from './password-reset/password-reset.service.js';
+import {
+  RequestPasswordResetDto,
+  ResetPasswordDto,
+} from './dto/reset-password.dto.js';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
@@ -33,6 +39,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly tokenService: TokenService,
     private readonly sessionService: SessionService,
+    private passwordResetService: PasswordResetService,
   ) {}
   private getSessionMetadata(req: Request, ip: string) {
     return {
@@ -196,5 +203,27 @@ export class AuthController {
     },
   ) {
     return user;
+  }
+
+  // ===== PASSWORD RESET ENDPOINTS =====
+
+  @Public()
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.OK)
+  async requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
+    return this.passwordResetService.requestPasswordReset(dto.email);
+  }
+
+  @Public()
+  @Get('password-reset/verify')
+  async verifyResetToken(@Query('token') token: string) {
+    return this.passwordResetService.verifyResetToken(token);
+  }
+
+  @Public()
+  @Post('password-reset/reset')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.passwordResetService.resetPassword(dto.token, dto.newPassword);
   }
 }

@@ -9,6 +9,7 @@ import { SessionCleanupService } from '../session/session-cleanup.service.js';
 import { PasswordResetService } from './password-reset/password-reset.service.js';
 import { EmailModule } from '../email/email.module.js';
 import { SessionService } from '../session/session.service.js';
+import { PasswordResetCleanupService } from './password-reset/password-reset-cleanup.service.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SessionService } from '../session/session.service.js';
     SessionService,
     SessionCleanupService,
     PasswordResetService,
+    PasswordResetCleanupService,
   ],
   controllers: [AuthController],
 })
