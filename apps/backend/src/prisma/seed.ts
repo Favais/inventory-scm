@@ -1,9 +1,8 @@
 import * as bcrypt from 'bcrypt';
-import { PrismaClient } from '../generated/prisma/client.js';
-import { UserRole } from '../generated/prisma/enums.js';
 import { PrismaService } from './prisma.service.js';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module.js';
+import { UserRole } from '@prisma/client';
 
 async function main() {
   const app = await NestFactory.createApplicationContext(AppModule);

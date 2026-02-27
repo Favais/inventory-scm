@@ -10,9 +10,9 @@ import {
 } from '@nestjs/common';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { UserService } from './user.service.js';
-import { UserRole } from '../generated/prisma/enums.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import { UserRole } from '@prisma/client';
 
 @Controller('user')
 export class UserController {

@@ -8,7 +8,6 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { SessionService } from '../../session/session.service.js';
-import { ResetPasswordDto } from '../dto/reset-password.dto.js';
 
 @Injectable()
 export class PasswordResetService {
@@ -95,11 +94,11 @@ export class PasswordResetService {
     token: string,
   ): Promise<{ valid: boolean; email?: string; message?: string }> {
     // Get active reset token of user
-    const reset = await this.prisma.passwordReset.findFirst({
+
+    const resets = await this.prisma.passwordReset.findMany({
       where: {
         usedAt: null,
         expiresAt: { gt: new Date() },
-        token,
       },
       include: {
         user: {
@@ -111,20 +110,22 @@ export class PasswordResetService {
       },
     });
 
-    if (!reset) {
+    if (!resets) {
       return {
         valid: false,
         message: 'Invalid or expired password reset token.',
       };
     }
     // Check if its valid
-    const isValid = await bcrypt.compare(token, reset?.token);
+    for (const reset of resets) {
+      const isValid = await bcrypt.compare(token, reset?.token);
 
-    if (isValid && reset.user.isActive) {
-      return {
-        valid: true,
-        email: reset.user.email,
-      };
+      if (isValid && reset.user.isActive) {
+        return {
+          valid: true,
+          email: reset.user.email,
+        };
+      }
     }
     return { valid: false };
   }
@@ -136,7 +137,6 @@ export class PasswordResetService {
     // Get active password reset token
     const reset = await this.prisma.passwordReset.findFirst({
       where: {
-        token,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -144,6 +144,7 @@ export class PasswordResetService {
         user: true,
       },
     });
+    console.log(token, reset?.token);
 
     if (!reset) {
       return {

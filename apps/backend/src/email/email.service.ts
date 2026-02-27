@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import nodemailer, { Transporter } from 'nodemailer';
 import * as fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import Handlebars from 'handlebars';
 
 export interface SendEmailOptions {
   to: string;
@@ -35,6 +37,10 @@ export class EmailService {
   }
 
   async sendEmail(options: SendEmailOptions) {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    console.log(__dirname);
+
     try {
       const templatePath = path.join(
         __dirname,
