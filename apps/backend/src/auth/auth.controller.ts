@@ -83,10 +83,10 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    return res.json({
+    return {
       accessToken: result.accessToken,
       user: result.user,
-    });
+    };
   }
 
   @Public()

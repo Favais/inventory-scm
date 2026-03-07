@@ -9,6 +9,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { UserModule } from './user/user.module.js';
 import { EmailModule } from './email/email.module.js';
+import { ProductsModule } from './products/products.module.js';
+import { RolesGuard } from './auth/guards/roles.guard.js';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import { EmailModule } from './email/email.module.js';
     TokenModule,
     UserModule,
     EmailModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -25,6 +28,10 @@ import { EmailModule } from './email/email.module.js';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })
